@@ -30,16 +30,18 @@ def press_11_alert_generator(start,end):
         results = collection.find(QUERY,projection)
         df1 = pd.DataFrame(results).set_index('Date')
         describe = df1.describe().T
-        describe = describe[['min','max']]
+        describe = np.percentile(df1.values,[0.5,99.5],axis=0)
+        describe = pd.DataFrame(describe, columns=df1.columns, index=[5,95])
+        # describe = describe[['min','max']]
         min_max = pd.concat([min_max,describe],axis=0)
 
-    print(min_max)
+    # print(min_max)
 
     error_list = []
     for i in range(len(min_max)):
-        name = min_max.iloc[i].name
-        lower = min_max.iloc[i].min()
-        upper = min_max.iloc[i].max()
+        name = min_max.columns[i]
+        lower = min_max.iloc[i,0]
+        upper = min_max.iloc[i,1]
         [lower_limit, upper_limit] = sensor_dict[name]
 
         if lower < lower_limit and upper > upper_limit:
@@ -68,4 +70,4 @@ def press_11_alert_generator(start,end):
 
     return error_list
 
-print(press_11_alert_generator(datetime(2023,6,13,10,0,0),datetime(2023,6,13,11,0,0)))
+# print(press_11_alert_generator(datetime(2023,6,13,10,0,0),datetime(2023,6,13,11,0,0)))

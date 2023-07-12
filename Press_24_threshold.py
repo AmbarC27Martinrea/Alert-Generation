@@ -5,15 +5,15 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import os
 
-def press_11_quantile(category,start,end):
-    press = "Press_11"
-
-    current_directory = os.getcwd()
+def press_24_quantile(category,start,end):
+    press = "Press_24"
 
     myclient_global = pymongo.MongoClient(host = "128.121.34.13",connect = True)
     press_db = myclient_global[press]
 
-    df = pd.read_excel(f"{current_directory}\live_sensors_list (2).xlsx",sheet_name = 'Press_11')
+    current_directory = os.getcwd()
+
+    df = pd.read_excel(f"{current_directory}\_P24_live_DataPoints.xlsx",sheet_name = 'Sheet1')
     tag_name = df['Tag Name']
     tag_name = list(tag_name)
     sensor_class = df['Class']
@@ -33,7 +33,7 @@ def press_11_quantile(category,start,end):
     batch_info_dict = {} #empty dict
 
     for column in tags:
-        for batch in [1,2]:
+        for batch in [1,2,3,4]:
             collection = "BATCH_"+str(batch) #collection in db
             col = press_db[collection]
             results = col.find().limit(1).sort("_id",-1) # getting the first entry in db
@@ -63,25 +63,26 @@ def press_11_quantile(category,start,end):
         # print(earliest_date)
 
         # start = datetime.strptime(earliest_date, "%d-%b-%Y %H:%M:%S.%f") + timedelta(days=15)
-        # start = datetime(2023,6,13,0,0,0)
-        # end   = start + timedelta(hours=12)
+        # start = datetime(2023,6,12,0,0,0)
+        # end   = start + timedelta(days=5)
         
 
         projection = {}
         projection['_id'] = 0
         projection['Date'] = 1
-        projection['Press_angle'] = 1
+        projection['Press_Angle'] = 1
         for field in fields:
             projection[field] = 1
 
-        # print(len(projection),projection)
+        print(len(projection),projection)
 
-        QUERY = {'$and':[{"Date": {'$gte': start, '$lt':  end}},{"Press_angle" : {'$gte':0, '$lte': 200}}]}
+        QUERY = {'$and':[{"Date": {'$gte': start, '$lt':  end}},{"Press_Angle" : {'$gte':0, '$lte': 200}}]}
         results = collection.find(QUERY,projection)
         df1 = pd.DataFrame(results).set_index('Date')
         df1.reset_index(inplace=True)
         df1.index = range(1, len(df1) + 1)
         describe = df1.describe().T
+
 
         def filtered(df,minutes=40*1*60):
             '''
@@ -97,52 +98,24 @@ def press_11_quantile(category,start,end):
             df_chunks = [df[i:i+minutes] for i in range(0, len(df), minutes)]
 
             # Filter out chunks with zero standard deviation in 'Press_Angle'
-            filtered_chunks = [chunk for chunk in df_chunks if np.std(chunk['Press_angle']) != 0]
+            filtered_chunks = [chunk for chunk in df_chunks if np.std(chunk['Press_Angle']) != 0]
 
             filtered_df = pd.concat(filtered_chunks, ignore_index=True)
 
             return filtered_df
         
         filtered_df = filtered(df1)
-
-        result = []  # List to store the percentiles
-
-        quantile = np.percentile(filtered_df.values,[0.5,99.5],axis=0)
-        # quantile = quantile.drop('Date', axis='columns')
-        # print(quantile)
-        quantile = pd.DataFrame(quantile, columns=filtered_df.columns, index=[5,95])
+        quantile = filtered_df.quantile([0.005,0.995], axis = 0)
+        quantile = quantile.drop('Date', axis='columns')
         quantiles = pd.concat([quantiles, quantile], axis=1)
-            
-
-        # for i in range(len(df1.columns)):
-        #     if df1.columns[i].endswith('Arms'):
-        #         plt.plot(filtered_df.iloc[:,i],color='black')
-        #         plt.ylabel(df1.columns[i])
-        #         plt.xlabel("Date")
-        #         plt.xticks(rotation=90)
-        #         plt.ylim(0,3)
-        #         plt.show()
-        #     elif df1.columns[i].endswith('Vrms'):
-        #         plt.plot(filtered_df.iloc[:,i],color='black')
-        #         plt.ylabel(df1.columns[i])
-        #         plt.xlabel("Date")
-        #         plt.xticks(rotation=90)
-        #         plt.ylim(0,0.01)
-        #         plt.show()
-        #     else:
-        #         plt.plot(filtered_df.iloc[:,i],color='black')
-        #         plt.ylabel(df1.columns[i])
-        #         plt.xlabel("Date")
-        #         plt.xticks(rotation=90)
-        #         plt.show()
 
     return quantiles.T
 
-def press_11_quantiles(start,end):
+def press_24_quantiles(start,end):
     quantiles = pd.DataFrame()
-    categories = ['Crown','Ram']
+    categories = ['BOLSTER','CROWN','FEEDLINE','HYDRAULIC','LUBRICATION','PNEUMATIC','RAM','TRANSFER']
     for category in categories:
-        quantile = press_11_quantile(category,start,end)
+        quantile = press_24_quantile(category,start,end)
         quantile = quantile.drop(quantile.index[0])
         quantiles = pd.concat([quantiles,quantile],axis=0)
     # print(quantiles)
@@ -155,4 +128,4 @@ def press_11_quantiles(start,end):
 
     return sensor_dict ## this dictionary gives the threshold values
 
-# print(press_11_quantiles(datetime(2023,6,13,10,0,0),datetime(2023,6,13,11,0,0)))
+# print(press_24_quantiles(datetime(2023,6,13,10,0,0),datetime(2023,6,13,11,0,0)))

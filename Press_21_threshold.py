@@ -2,17 +2,19 @@ import pymongo
 import pandas as pd
 import matplotlib.pyplot as plt 
 from datetime import datetime, timedelta
+import os
 
 def press_21_quantile(category,start,end):
-
     if category in ["Bolster","Press","Ram"]:
         batch = 'BATCH_1'
     elif category in ["Crown","Lubrication"]:
         batch = 'BATCH_2'
     else:
         raise('Category not valid')
+    
+    current_directory = os.getcwd()
 
-    df = pd.read_excel(r"C:\Users\achakraborty\Downloads\P21_Live_DataPointsList.xlsx",sheet_name = 'Sheet1')
+    df = pd.read_excel(f"{current_directory}\P21_Live_DataPointsList.xlsx",sheet_name = 'Sheet1')
     tag_name = df['Tag Name']
     tag_name = list(tag_name)
     sensor_class = df['Class']
@@ -23,7 +25,7 @@ def press_21_quantile(category,start,end):
         if sensor_class[i] == category:
             tags.append(tag_name[i])
 
-    print(len(tags))
+    # print(len(tags))
 
     press = "Press_21"
 
@@ -41,8 +43,8 @@ def press_21_quantile(category,start,end):
     for field in tags:
         projection[field] = 1
 
-    print(len(projection))
-    print(projection)
+    # print(len(projection))
+    # print(projection)
 
 
     QUERY = {"Date": {'$gte': start, '$lt':  end}}

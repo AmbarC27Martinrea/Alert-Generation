@@ -13,3 +13,5 @@ def alert(press,start,end):
         raise('Invalid Press Number')
     
 print(alert(24,datetime(2023,6,13,10,0,0),datetime(2023,6,13,11,0,0)))
+# print(alert(21,datetime(2023,6,13,10,0,0),datetime(2023,6,13,11,0,0)))
+# print(alert(24,datetime(2023,6,13,10,0,0),datetime(2023,6,13,11,0,0)))
